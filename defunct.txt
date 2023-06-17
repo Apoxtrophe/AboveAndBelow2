@@ -1,0 +1,10 @@
+func (g *Game) Draw(screen *ebiten.Image) {
+	pixels := make([]byte, win_width * win_height * 4)
+	for i := 0; i < len(pixels); i +=4{
+		pixels[i+0] = 200 
+        pixels[i+1] = 255
+        pixels[i+2] = 255
+        pixels[i+3] = 255
+	}
+	screen.WritePixels(pixels)
+}
