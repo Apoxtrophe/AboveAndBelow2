@@ -8,3 +8,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.WritePixels(pixels)
 }
+
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	for row := 0; row < len(g.Arr); row++ {
+		for col := 0; col < len(g.Arr[row]); col++ {
+            var clr color.Color
+			if g.Arr[row][col] == 1 {
+				clr = color.White
+			}else{
+				clr = color.Black
+			}
+			img := ebiten.NewImage(pix_size, pix_size) 			
+			img.Fill(clr)
+
+			opts := &ebiten.DrawImageOptions{}
+			opts.GeoM.Translate(float64(col*pix_size), float64(row*pix_size))
+			screen.DrawImage(img, opts)
+        }
+	}
+	
+}
