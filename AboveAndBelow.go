@@ -1,88 +1,86 @@
 package main
 
 import (
-	"image/color"
+	//"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
 
 	//"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	//"image/color"
+	"image/color"
 	"fmt"
 	"log"
 	"math/rand"
 )
 
 const (
-	win_width, win_height, pix_size = 640, 480, 10
+    screenWidth  = 1920
+    screenHeight = 1080
 )
 
-
-// ANCHOR Game struct
-type Game struct {
-	Pixels   []byte //Pixel buffer
-	X        int
-	Y        int
-	Arr      [][]*Element
-	Arr_Next [][]*Element
-	Index    int
+func main () {
+	ebiten.SetWindowTitle ("Above & Below")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowResizable(true)
+	if error := ebiten.RunGame(NewGame()); error!= nil {
+		log.Fatal(error)		
+	}
 }
 
+type Game struct {
+	Pixels []byte
+	FirstBuffer[][] int
+	SecondBuffer [][] int
+	Index int
+	PixelSize int
+    //ebiten.Game
+}
 
-// ANCHOR Game Constructor
-func NewGame() *Game {
+func NewGame() *Game {	
 	g := &Game{}
-	g.Pixels = make([]byte, win_width*win_height*4)
-	//Init 2D array with side length width / pixel size
-	g.Arr = make([][]*Element, win_height/pix_size)
-	g.Arr_Next = make([][]*Element, win_height/pix_size)
-	for i := range g.Arr {
-		g.Arr[i] = make([]*Element, win_width/pix_size)
-		g.Arr_Next[i] = make([]*Element, win_width/pix_size)
+	g.PixelSize = 10
+	g.Pixels = make([]byte, screenWidth*screenHeight*4)
+	g.FirstBuffer = make ([][]int, screenHeight / g.PixelSize)
+	g.SecondBuffer = make ([][]int, screenHeight / g.PixelSize)
+	for i := range g.FirstBuffer {
+		g.FirstBuffer[i] = make([]int, screenWidth / g.PixelSize)
+		g.SecondBuffer[i] = make([]int, screenWidth / g.PixelSize)
 	}
-	g.Index = 0
-	// initialize g.Pixels here...
 	return g
 }
 
-// ANCHOR Update Function
 func (g *Game) Update() error {
 	MouseInteract(g)
 	g.AliveArray()
-	return nil
+    return nil
 }
 
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+    return screenWidth, screenHeight
+}
 
-// ANCHOR Cell Update
-func (g *Game) AliveArray() {
-	aliveCells := make([][2]int, 0)
-	for row := 0; row < len(g.Arr); row++ {
-		for col := 0; col < len(g.Arr[row]); col++ {
-			if g.Arr[row][col] != nil && g.Arr[row][col].Type != 0{
-				aliveCells = append(aliveCells, [2]int{row, col})
+func (g *Game) Draw(screen *ebiten.Image) {
+    for row := 0; row < len(g.FirstBuffer); row++ {
+		for col := 0; col < len(g.FirstBuffer[row]); col++ {
+			clr := ElementMap [g.FirstBuffer[row][col]].Color
+			for y := 0; y < g.PixelSize; y++ {
+				for x := 0; x < g.PixelSize; x++ {
+                    i := ((row*g.PixelSize+y)*screenWidth + (col*g.PixelSize + x)) * 4
+					g.Pixels[i+0] = clr.R
+					g.Pixels[i+1] = clr.G
+					g.Pixels[i+2] = clr.B
+					g.Pixels[i+3] = clr.A
+                }
 			}
 		}
 	}
-	// shuffle update order of alive cells
-	rand.Shuffle(len(aliveCells), func(i, j int) {
-		aliveCells[i], aliveCells[j] = aliveCells[j], aliveCells[i]
-	})
-
-	// reset Arr_Next
-	for row := range g.Arr_Next {
-		for col := range g.Arr_Next[row] {
-			g.Arr_Next[row][col] = Elements[0]
-		}
-	}
-
-	// Swap Arr and Arr_Next
-	g.Arr, g.Arr_Next = g.Arr_Next, g.Arr
+	screen.WritePixels(g.Pixels)
 }
 
-// ANCHOR Mouse Interaction
+
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
-	world_x, world_y := x/pix_size, y/pix_size
+	world_x, world_y := x/g.PixelSize, y/g.PixelSize
 	mouse_one := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	mouse_two := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	//Scroll detection
@@ -94,108 +92,132 @@ func MouseInteract(g *Game) {
 	}
 	fmt.Println(g.Index)
 	//Clicking detection
-	if mouse_one {
-		g.Arr[world_y][world_x] = Elements[g.Index]
-	}
-	if mouse_two {
-		g.Arr[world_y][world_x] = Elements[0]
-	}
+	if mouse_one { g.FirstBuffer[world_y][world_x] = g.Index }
+	if mouse_two { g.FirstBuffer[world_y][world_x] = 0 }
 }
 
-
-// ANCHOR MAIN
-func main() {
-	ebiten.SetWindowSize(win_width, win_height)
-	ebiten.SetWindowTitle("Above & Below")
-	ebiten.SetWindowResizable(true)
-	if err := ebiten.RunGame(NewGame()); err != nil {
-		log.Fatal(err)
+func (g *Game) AliveArray() {
+	aliveCells := make([][2]int,0)
+	for row := 0; row < len(g.FirstBuffer); row++ {
+		for col := 0; col < len(g.FirstBuffer[row]); col++ {
+           if g.FirstBuffer[row][col] != 0 {
+			aliveCells = append(aliveCells, [2]int{row, col})
+		   }
+        }
 	}
-}
-
-
-// ANCHOR Layout Function
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return win_width, win_height
-}
-
-// ANCHOR Draw Function
-func (g *Game) Draw(screen *ebiten.Image) {
-	for row := 0; row < len(g.Arr); row++ {
-		for col := 0; col < len(g.Arr[row]); col++ {
-			// Calculate the color based on g.Arr[row][col]
-			clr := g.Arr[row][col].Color
-			// Set the color of a 10x10 block of pixels in g.Pixels
-			for y := 0; y < pix_size; y++ {
-				for x := 0; x < pix_size; x++ {
-					i := ((row*pix_size+y)*win_width + (col*pix_size + x)) * 4
-					g.Pixels[i+0] = clr.R
-					g.Pixels[i+1] = clr.G
-					g.Pixels[i+2] = clr.B
-					g.Pixels[i+3] = clr.A
-				}
-			}
+	rand.Shuffle(len(aliveCells), func(i,j int){
+		aliveCells[i], aliveCells[j] = aliveCells[j], aliveCells[i]
+	})
+	// Reset next buffer
+	for row := range g.FirstBuffer {
+		for col := range g.FirstBuffer[row] {
+			g.SecondBuffer[row][col] = 0
 		}
 	}
 
-	//fmt.Println(ebiten.ActualFPS())
-	screen.WritePixels(g.Pixels)
-}
-// ANCHOR Element Struct
-type Element struct {
-	Type int
-	Color color.RGBA
-	Weight int
-	Gravity int
+	for _, pos := range aliveCells {
+		row, col := pos[0], pos[1]
+		switch g.FirstBuffer[row][col] {
+		case 6: 
+			g.Phys_Powder(row,col)
+			g.DensityCompare(row,col)
+		case 14: 	
+			g.Phys_Powder(row, col)
+			g.DensitySwap(row,col)
+		case 22:
+			g.Phys_Solid(row, col)
+		default: 
+		
+		}
+	}
+	g.FirstBuffer, g.SecondBuffer = g.SecondBuffer, g.FirstBuffer
 }
 
 
-// ANCHOR Element Properties
-var Elements = map[int]*Element{
-	0: &Element{
-		Type: 0,
+var ElementMap = map[int] Element {
+	0: {
 		Color: colornames.Black,
-		Weight: 0,
-        Gravity: 0,
+		Name: "Void",
+		Density: 0,
 	},
-	14: &Element{
-		Type: 14,
-		Color: colornames.Yellow,
-		Weight: 10,
-        Gravity: 0,
+	6: {
+		Color: colornames.Gray,
+        Name: "Carbon",
+        Density: 22,
 	},
-	22: &Element{
-		Type: 22,
-		Color: colornames.Darkgray,
-		Weight: 100,
-        Gravity: 0,
+	14: {
+		Color: colornames.Red,
+        Name: "Silicon",
+		Density: 24,
+	},
+	22: {
+		Color: colornames.Cornflowerblue ,
+        Name: "white",
+		Density: 45,
 	},
 }
 
-type Solid interface {
-	IsSolid() bool
-}
-type Powder interface {
-	IsPowder() bool
-}
-type Liquid interface {
-	IsLiquid() bool
-}
-type Gas interface {
-	IsGas() bool
+type Element struct {
+	Name string
+	Color color.RGBA
+	Density int
 }
 
-type Titanium struct {
-	Element
-}
-func (t Titanium) IsSolid() bool {
-    return true
+func (g * Game) FreeSpace (row, col int) bool {
+	if g.FirstBuffer[row][col] == 0 && g.SecondBuffer[row][col] == 0{
+		return true
+	}
+	return false
 }
 
-type Silicon struct {
-	Element
+func (g *Game) Phys_Solid (row, col int){
+	if col > 0 {
+		g.SecondBuffer[row][col] = g.FirstBuffer[row][col]
+	}
 }
-func (s Silicon) IsPowder() bool {
-	return true
+
+func (g *Game) DensityCompare (row, col int) bool {
+	if ElementMap[g.FirstBuffer[row][col]].Density > ElementMap[g.SecondBuffer[row -1][col]].Density {
+		return true
+	}
+	return false
+}
+
+func (g *Game) DensitySwap (row, col int){
+	if g.DensityCompare(row, col){
+		g.SecondBuffer[row -1][col] = g.FirstBuffer[row][col]
+		g.FirstBuffer[row][col] = g.FirstBuffer[row-1][col]
+	}
+}
+
+func (g *Game) Phys_Powder (row, col int) {
+	if row + 1 < len(g.FirstBuffer) && g.FreeSpace(row + 1, col) {
+		g.SecondBuffer[row + 1][col] = g.FirstBuffer[row][col]
+		g.SecondBuffer[row][col] = 0
+		} else {
+			// If space below is not free, then check if diagonal spaces are free
+			// If both diagonal spaces are free, choose a random direction
+			// If one is free, move in that direction
+			// If none are free, stay in place
+			leftFree := col - 1 >= 0 && g.FreeSpace(row + 1, col - 1)
+			rightFree := col + 1 < len(g.FirstBuffer[row]) && g.FreeSpace(row + 1, col + 1)
+	
+			if leftFree && rightFree {
+				if rand.Float32() < 0.5 {
+					g.SecondBuffer[row+1][col-1] = g.FirstBuffer[row][col]
+				} else {
+					g.SecondBuffer[row+1][col+1] = g.FirstBuffer[row][col]
+				}
+				g.SecondBuffer[row][col] = 0
+			} else if leftFree {
+				g.SecondBuffer[row+1][col-1] = g.FirstBuffer[row][col]
+				g.SecondBuffer[row][col] = 0
+			} else if rightFree {
+				g.SecondBuffer[row+1][col+1] = g.FirstBuffer[row][col]
+				g.SecondBuffer[row][col] = 0
+			} else {
+				g.SecondBuffer[row][col] = g.FirstBuffer[row][col]
+			}
+		}
 }
 
