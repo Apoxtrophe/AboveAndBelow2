@@ -190,3 +190,33 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 
 
+func (g *Game) Phys_Powder(row, col int) {
+	if row+1 < len(g.FirstBuffer) && g.FreeSpace(row+1, col) {
+		g.SecondBuffer[row+1][col] = g.FirstBuffer[row][col]
+		g.SecondBuffer[row][col] = 0
+	} else {
+		// If space below is not free, then check if diagonal spaces are free
+		// If both diagonal spaces are free, choose a random direction
+		// If one is free, move in that direction
+		// If none are free, stay in place
+		leftFree := col-1 >= 0 && g.FreeSpace(row+1, col-1)
+		rightFree := col+1 < len(g.FirstBuffer[row]) && g.FreeSpace(row+1, col+1)
+
+		if leftFree && rightFree {
+			if rand.Float32() < 0.5 {
+				g.SecondBuffer[row+1][col-1] = g.FirstBuffer[row][col]
+			} else {
+				g.SecondBuffer[row+1][col+1] = g.FirstBuffer[row][col]
+			}
+			g.SecondBuffer[row][col] = 0
+		} else if leftFree {
+			g.SecondBuffer[row+1][col-1] = g.FirstBuffer[row][col]
+			g.SecondBuffer[row][col] = 0
+		} else if rightFree {
+			g.SecondBuffer[row+1][col+1] = g.FirstBuffer[row][col]
+			g.SecondBuffer[row][col] = 0
+		} else {
+			g.SecondBuffer[row][col] = g.FirstBuffer[row][col]
+		}
+	}
+}
