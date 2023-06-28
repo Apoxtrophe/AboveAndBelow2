@@ -220,3 +220,24 @@ func (g *Game) Phys_Powder(row, col int) {
 		}
 	}
 }
+
+
+		leftFree := col-1 >= 0 && g.IsFree(row+1, col-1)
+		rightFree := col+1 < len(g.Ichi[row]) && g.IsFree(row+1, col+1)
+
+		if leftFree && rightFree {
+			if rand.Float32() < 0.5 {
+				g.Ni[row+1][col-1] = g.Ichi[row][col]
+			} else {
+				g.Ni[row+1][col+1] = g.Ichi[row][col]
+			}
+			g.Ni[row][col] = 0
+		} else if leftFree {
+			g.Ni[row+1][col-1] = g.Ichi[row][col]
+			g.Ni[row][col] = 0
+		} else if rightFree {
+			g.Ni[row+1][col+1] = g.Ichi[row][col]
+			g.Ni[row][col] = 0
+		} else {
+			g.Ni[row][col] = g.Ichi[row][col]
+		}
