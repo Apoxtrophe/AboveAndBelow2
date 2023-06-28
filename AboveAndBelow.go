@@ -57,7 +57,7 @@ func (b *Button) Draw (screen *ebiten.Image){
 
 //ANCHOR Game Struct
 type Game struct {
-	button *Button
+	buttons []*Button
 	Pixels    []byte
 	Ichi      [][]int
 	Ni        [][]int
@@ -68,13 +68,9 @@ type Game struct {
 //ANCHOR Game Constructor
 func NewGame() *Game {
 	g := &Game{}
-	g.button = &Button{
-		x: 50,
-		y: 50,
-		w: 100,
-		h: 50,
-		color: colornames.Coral, 
-		onClick: func() { log.Println("Button clicked")},
+	g.buttons = []*Button{
+		NewButton(50, 50, 100, 50, ElementMap[6], func() { g.Index = 6 }),
+        NewButton(200, 50, 100, 50, ElementMap[14], func() {g.Index = 14 }),
 	}
 	g.PixelSize = 10
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -89,10 +85,16 @@ func NewGame() *Game {
 
 //ANCHOR Update
 func (g *Game) Update() error {
-	g.button.Update()
+	g.UpdateUI()
 	MouseInteract(g)
 	g.AliveArray()
 	return nil
+}
+
+func (g *Game) UpdateUI(){
+	for _, button := range g.buttons {
+		button.Update()
+	}
 }
 
 //ANCHOR Layout
@@ -117,7 +119,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 	screen.WritePixels(g.Pixels)
-	g.button.Draw(screen)
+	g.DrawUI(screen)
+}
+
+func (g *Game) DrawUI(screen *ebiten.Image) {
+	for _, button := range g.buttons {
+		button.Draw(screen)
+	}
+}
+
+func NewButton(x,y,w,h int, element Element, action func()) *Button {
+	return &Button{
+	x: x,
+	y: y,
+	w: w,
+	h: h,
+	color: element.Color,
+	onClick: action,
+	}
 }
 
 // ANCHOR Mouse Work
@@ -237,7 +256,7 @@ func (g *Game) Phys_Solid(row, col int) {
 
 // ANCHOR PowderPhysics
 func (g *Game) Phys_Powder(row, col int) {
-	// Fall down -> -> Swap densities -> fall either side -> fall left -> fall right -> stay stationary
+	// Fall down -> ?Swap densities -> fall either side -> fall left -> fall right -> stay stationary
 	if row+1 < len(g.Ichi) && g.IsFree(row+1, col) {
 		g.Ni[row+1][col] = g.Ichi[row][col]
 		g.Ni[row][col] = 0
