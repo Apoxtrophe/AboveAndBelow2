@@ -10,16 +10,16 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math/rand" 
+	"math/rand"
 )
 
-//ANCHOR Global Constants
+// ANCHOR Global Constants
 const (
 	screenWidth  = 1920
 	screenHeight = 1080
 )
 
-//ANCHOR Main
+// ANCHOR Main
 func main() {
 	ebiten.SetWindowTitle("Above & Below")
 	ebiten.SetWindowSize(screenWidth, screenHeight)
@@ -29,25 +29,25 @@ func main() {
 	}
 }
 
-//ANCHOR Button Struct
+// ANCHOR Button Struct
 type Button struct {
 	x, y, w, h int
-	color color.Color
-	onClick func()
+	color      color.Color
+	onClick    func()
 }
 
-//ANCHOR Update Button
-func (b *Button) Update(){
-	x , y := ebiten.CursorPosition()
-	if x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h {
-		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft){
+// ANCHOR Update Button
+func (b *Button) Update() {
+	x, y := ebiten.CursorPosition()
+	if x >= b.x && y >= b.y && x < b.x+b.w && y < b.y+b.h {
+		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 			b.onClick()
 		}
-	}  
+	}
 }
 
-//ANCHOR Draw Button
-func (b *Button) Draw (screen *ebiten.Image){
+// ANCHOR Draw Button
+func (b *Button) Draw(screen *ebiten.Image) {
 	button := ebiten.NewImage(b.w, b.h)
 	button.Fill(b.color)
 	op := &ebiten.DrawImageOptions{}
@@ -55,9 +55,9 @@ func (b *Button) Draw (screen *ebiten.Image){
 	screen.DrawImage(button, op)
 }
 
-//ANCHOR Game Struct
+// ANCHOR Game Struct
 type Game struct {
-	buttons []*Button
+	buttons   []*Button
 	Pixels    []byte
 	Ichi      [][]int
 	Ni        [][]int
@@ -65,12 +65,12 @@ type Game struct {
 	PixelSize int
 }
 
-//ANCHOR Game Constructor
+// ANCHOR Game Constructor
 func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
 		NewButton(50, 50, 100, 50, ElementMap[6], func() { g.Index = 6 }),
-        NewButton(200, 50, 100, 50, ElementMap[14], func() {g.Index = 14 }),
+		NewButton(200, 50, 100, 50, ElementMap[14], func() { g.Index = 14 }),
 	}
 	g.PixelSize = 10
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -83,7 +83,7 @@ func NewGame() *Game {
 	return g
 }
 
-//ANCHOR Update
+// ANCHOR Update
 func (g *Game) Update() error {
 	g.UpdateUI()
 	MouseInteract(g)
@@ -91,13 +91,13 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) UpdateUI(){
+func (g *Game) UpdateUI() {
 	for _, button := range g.buttons {
 		button.Update()
 	}
 }
 
-//ANCHOR Layout
+// ANCHOR Layout
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
@@ -128,14 +128,14 @@ func (g *Game) DrawUI(screen *ebiten.Image) {
 	}
 }
 
-func NewButton(x,y,w,h int, element Element, action func()) *Button {
+func NewButton(x, y, w, h int, element Element, action func()) *Button {
 	return &Button{
-	x: x,
-	y: y,
-	w: w,
-	h: h,
-	color: element.Color,
-	onClick: action,
+		x:       x,
+		y:       y,
+		w:       w,
+		h:       h,
+		color:   element.Color,
+		onClick: action,
 	}
 }
 
@@ -194,7 +194,7 @@ func (g *Game) AliveArray() {
 		case 80:
 			g.Phys_Liquid(row, col)
 		default:
-			g.Ni[row][col] = g.Ichi[row][col]
+			
 		}
 	}
 	g.Ichi, g.Ni = g.Ni, g.Ichi
@@ -231,23 +231,14 @@ var ElementMap = map[int]Element{
 	},
 }
 
-//ANCHOR Element Struct
+// ANCHOR Element Struct
 type Element struct {
 	Name    string
 	Color   color.RGBA
 	Density int
 }
 
-// ANCHOR Miscellaneous Functions
-func (g *Game) IsFree(row, col int) bool {
-	// Check if free space is available in both buffers
-	if g.Ichi[row][col] == 0 && g.Ni[row][col] == 0 {
-		return true
-	}
-	return false
-}
-
-//ANCHOR SolidPhysics
+// ANCHOR SolidPhysics
 func (g *Game) Phys_Solid(row, col int) {
 	if col > 0 {
 		g.Ni[row][col] = g.Ichi[row][col]
@@ -257,54 +248,78 @@ func (g *Game) Phys_Solid(row, col int) {
 // ANCHOR PowderPhysics
 func (g *Game) Phys_Powder(row, col int) {
 	// Fall down -> ?Swap densities -> fall either side -> fall left -> fall right -> stay stationary
-	if row+1 < len(g.Ichi) && g.IsFree(row+1, col) {
-		g.Ni[row+1][col] = g.Ichi[row][col]
-		g.Ni[row][col] = 0
-	} else {
-		leftFree := col-1 >= 0 && g.IsFree(row+1, col-1)
-		rightFree := col+1 < len(g.Ichi[row]) && g.IsFree(row+1, col+1)
-		if leftFree && rightFree {
-			g.Ni[row][col] = 0
-			if rand.Float32() < 0.5 {
-				g.Ni[row+1][col-1] = g.Ichi[row][col]
-			} else {
-				g.Ni[row+1][col+1] = g.Ichi[row][col]
-			}
-		} else if leftFree {
-			g.Ni[row+1][col-1] = g.Ichi[row][col]
-			g.Ni[row][col] = 0
-		} else if rightFree {
-			g.Ni[row+1][col+1] = g.Ichi[row][col]
-			g.Ni[row][col] = 0
+	if g.canSwapTo(row, col, row+1, col) {
+		g.swapParticle(row, col, row+1, col)
+		return
+	}
+	leftFree := g.canSwapTo(row, col, row+1, col-1)
+	rightFree := g.canSwapTo(row, col, row+1, col+1)
+	if leftFree && rightFree {
+		if rand.Float32() < 0.5 {
+			g.swapParticle(row, col, row+1, col-1)
 		} else {
-			g.Ni[row][col] = g.Ichi[row][col]
+			g.swapParticle(row, col, row+1, col+1)
 		}
+	} else if leftFree {
+		g.swapParticle(row, col, row+1, col-1)
+	} else if rightFree {
+		g.swapParticle(row, col, row+1, col+1)
+	} else {
+		g.swapParticle(row, col, row, col)
 	}
 }
 
 // ANCHOR LiquidPhysics
 func (g *Game) Phys_Liquid(row, col int) {
-	if row+1 < len(g.Ichi) && g.IsFree(row+1, col) {
-		g.Ni[row+1][col] = g.Ichi[row][col]
-		g.Ni[row][col] = 0
-	} else {
-		leftFree := col-1 >= 0 && g.IsFree(row, col-1)
-		rightFree := col+1 >= 0 && g.IsFree(row, col+1)
-		if leftFree && rightFree {
-			g.Ni[row][col] = 0
-			if rand.Float32() < 0.5 {
-				g.Ni[row][col-1] = g.Ichi[row][col]
-			} else {
-				g.Ni[row][col+1] = g.Ichi[row][col]
-			}
-		} else if leftFree {
-			g.Ni[row][col-1] = g.Ichi[row][col]
-			g.Ni[row][col] = 0
-		} else if rightFree {
-			g.Ni[row][col+1] = g.Ichi[row][col]
-			g.Ni[row][col] = 0
-		} else {
-			g.Ni[row][col] = g.Ichi[row][col]
-		}
+	if g.canSwapTo(row, col, row+1, col) {
+		g.swapParticle(row, col, row+1, col)
+		return
 	}
+	leftFree := g.canSwapTo(row, col, row, col-1)
+	rightFree := g.canSwapTo(row, col, row, col+1)
+	if leftFree && rightFree {
+		if rand.Float32() < 0.5 {
+			g.swapParticle(row, col, row, col-1)
+		} else {
+			g.swapParticle(row, col, row, col+1)
+		}
+	} else if leftFree {
+		g.swapParticle(row, col, row, col-1)
+	} else if rightFree {
+		g.swapParticle(row, col, row, col+1)
+	} else {
+		g.swapParticle(row, col, row, col)
+	}
+
+}
+
+// ANCHOR Helper Functions
+func (g *Game) IsFree(row, col int) bool {
+	// Check if free space is available in both buffers
+	if g.Ichi[row][col] == 0 && g.Ni[row][col] == 0 {
+		return true
+	}
+	return false
+}
+
+func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
+	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFreeDebug(sourceRow, sourceCol, targetRow, targetCol)
+}
+
+func (g *Game) swapParticle(sourceRow, sourceCol, targetRow, targetCol int) {
+	Source := g.Ichi[sourceRow][sourceCol]
+	Target := g.Ichi[targetRow][targetCol]
+    g.Ichi[sourceRow][sourceCol] = Target
+    g.Ichi[targetRow][targetCol] = Source
+
+    g.Ni[sourceRow][sourceCol] = g.Ichi[sourceRow][sourceCol]
+    g.Ni[targetRow][targetCol] = g.Ichi[targetRow][targetCol]
+}
+
+func (g *Game) isMoreDense(sourceRow, sourceCol, targetRow, targetCol int) bool {
+	return ElementMap[g.Ichi[sourceRow][sourceCol]].Density > ElementMap[g.Ichi[targetRow][targetCol]].Density
+}
+
+func (g *Game) NiFreeDebug(sourceRow, sourceCol, targetRow, targetCol int) bool{
+	return g.Ni[sourceRow][sourceCol] == 0 && g.Ni[targetRow][targetCol] == 0
 }
