@@ -3,8 +3,7 @@ module AboveAndBelow
 go 1.20
 
 require (
-	github.com/ebitenui/ebitenui v0.5.4
-	github.com/hajimehoshi/ebiten/v2 v2.5.4
+	github.com/hajimehoshi/ebiten/v2 v2.5.5
 	golang.org/x/image v0.7.0
 )
 

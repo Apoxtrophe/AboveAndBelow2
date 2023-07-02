@@ -5,13 +5,12 @@ import (
 	//"image/color"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
-
-	//"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"fmt"
 	"image/color"
 	"log"
 	"math/rand"
 	"time"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -66,6 +65,9 @@ type Game struct {
 	Ni        [][]int
 	Index     int
 	PixelSize int
+	ParticleCount int
+	FPS float64
+	SelectedElement string
 }
 
 // ANCHOR Game Constructor
@@ -126,6 +128,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.WritePixels(g.Pixels)
 	g.DrawUI(screen)
+	//Print debug information
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s",g.FPS, g.ParticleCount,g.SelectedElement))
+
 }
 
 func (g *Game) DrawUI(screen *ebiten.Image) {
@@ -207,8 +212,10 @@ func (g *Game) AliveArray() {
 		}
 	}
 	g.Ichi, g.Ni = g.Ni, g.Ichi
-	length := len(aliveCells)
-	fmt.Println("          ", length)
+	//Icky Icky debug stuff
+	g.SelectedElement = ElementMap[g.Index].Name
+	g.FPS = ebiten.ActualTPS()
+	g.ParticleCount = len(aliveCells)
 }
 
 // ANCHOR Element Map
@@ -246,7 +253,7 @@ var ElementMap = map[int]Element{
 	80: {
 		Color:   colornames.White,
 		Name:    "Mercury",
-		Density: 13,
+		Density: 135,
 		isFluid: true, 
 	},
 
