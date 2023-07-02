@@ -11,7 +11,10 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
+	"time"
 )
+
+var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // ANCHOR Global Constants
 const (
@@ -69,8 +72,11 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
-		NewButton(50, 50, 100, 50, ElementMap[6], func() { g.Index = 6 }),
-		NewButton(200, 50, 100, 50, ElementMap[14], func() { g.Index = 14 }),
+		NewButton(100, 50, 100, 50, ElementMap[6], func() { g.Index = 6 }),
+		NewButton(220, 50, 100, 50, ElementMap[8], func() { g.Index = 8 }),
+		NewButton(340, 50, 100, 50, ElementMap[14], func() { g.Index = 14 }),
+		NewButton(460, 50, 100, 50, ElementMap[22], func() { g.Index = 22 }),
+		NewButton(580, 50, 100, 50, ElementMap[80], func() { g.Index = 80 }),
 	}
 	g.PixelSize = 10
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -184,9 +190,15 @@ func (g *Game) AliveArray() {
 
 	for _, pos := range aliveCells {
 		row, col := pos[0], pos[1]
+		if row <= 1 || col <= 1 || row >= len(g.Ichi)-2 || col >= len(g.Ichi[0])-2 {
+			g.Ichi[row][col] = 0
+			continue
+		}
 		switch g.Ichi[row][col] {
 		case 6:
 			g.Phys_Powder(row, col)
+		case 8:
+			g.Phys_Gas(row,col)
 		case 14:
 			g.Phys_Powder(row, col)
 		case 22:
@@ -216,6 +228,12 @@ var ElementMap = map[int]Element{
 		Density: 22,
 		isFluid: false, 
 	},
+	8: {
+		Color: colornames.Aqua,
+		Name: "Oxygen",
+		Density: 1,
+		isFluid: true,
+	},
 	14: {
 		Color:   colornames.Red,
 		Name:    "Silicon",
@@ -232,8 +250,9 @@ var ElementMap = map[int]Element{
 		Color:   colornames.White,
 		Name:    "Mercury",
 		Density: 13,
-		isFluid: false, 
+		isFluid: true, 
 	},
+
 }
 
 // ANCHOR Element Struct
@@ -298,7 +317,32 @@ func (g *Game) Phys_Liquid(row, col int) {
 	}
 }
 
+//ANCHOR GasPhysics
+func (g *Game) Phys_Gas(row, col int){
+	newRow , newCol := g.randomPosition(row, col)
+	if g.canSwapTo(row,col, newRow, newCol){
+		g.swapParticle(row, col, newRow, newCol)
+	} else {
+		g.swapParticle(row, col, row, col)
+	}
+}
+
 // ANCHOR Helper Functions
+func (g *Game) randomPosition(row, col int) (int, int){
+	positions := [8][2]int{
+		{-1, -1},
+		{-1, 0 },
+		{-1, 1 },
+		{0 , -1},
+		{0 , 1 },
+		{1 , -1},
+		{1 , 0 },
+		{1 , 1 },
+	}
+	randValue := globalRand.Intn(8)
+	return row + positions[randValue][0],  col + positions[randValue][1]
+}
+
 func (g *Game) IsFree(row, col int) bool {
 	// Check if free space is available in both buffers
 	if g.Ichi[row][col] == 0 && g.Ni[row][col] == 0 {
@@ -307,8 +351,9 @@ func (g *Game) IsFree(row, col int) bool {
 	return false
 }
 
+
 func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
-	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid == true
+	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid
 }
 
 func (g *Game) swapParticle(sourceRow, sourceCol, targetRow, targetCol int) {
