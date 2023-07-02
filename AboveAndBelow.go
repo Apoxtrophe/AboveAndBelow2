@@ -208,26 +208,31 @@ var ElementMap = map[int]Element{
 		Color:   colornames.Black,
 		Name:    "Void",
 		Density: 0,
+		isFluid: true,
 	},
 	6: {
 		Color:   colornames.Gray,
 		Name:    "Carbon",
 		Density: 22,
+		isFluid: false, 
 	},
 	14: {
 		Color:   colornames.Red,
 		Name:    "Silicon",
 		Density: 24,
+		isFluid: false,
 	},
 	22: {
 		Color:   colornames.Cornflowerblue,
 		Name:    "Titanium",
 		Density: 45,
+		isFluid: false,
 	},
 	80: {
 		Color:   colornames.White,
 		Name:    "Mercury",
-		Density: 135,
+		Density: 13,
+		isFluid: false, 
 	},
 }
 
@@ -236,6 +241,7 @@ type Element struct {
 	Name    string
 	Color   color.RGBA
 	Density int
+	isFluid bool
 }
 
 // ANCHOR SolidPhysics
@@ -247,7 +253,7 @@ func (g *Game) Phys_Solid(row, col int) {
 
 // ANCHOR PowderPhysics
 func (g *Game) Phys_Powder(row, col int) {
-	// Fall down -> ?Swap densities -> fall either side -> fall left -> fall right -> stay stationary
+	// Fall down -> fall either side -> fall left -> fall right -> stay stationary
 	if g.canSwapTo(row, col, row+1, col) {
 		g.swapParticle(row, col, row+1, col)
 		return
@@ -290,7 +296,6 @@ func (g *Game) Phys_Liquid(row, col int) {
 	} else {
 		g.swapParticle(row, col, row, col)
 	}
-
 }
 
 // ANCHOR Helper Functions
@@ -303,7 +308,7 @@ func (g *Game) IsFree(row, col int) bool {
 }
 
 func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
-	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFreeDebug(sourceRow, sourceCol, targetRow, targetCol)
+	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid == true
 }
 
 func (g *Game) swapParticle(sourceRow, sourceCol, targetRow, targetCol int) {
@@ -320,6 +325,6 @@ func (g *Game) isMoreDense(sourceRow, sourceCol, targetRow, targetCol int) bool 
 	return ElementMap[g.Ichi[sourceRow][sourceCol]].Density > ElementMap[g.Ichi[targetRow][targetCol]].Density
 }
 
-func (g *Game) NiFreeDebug(sourceRow, sourceCol, targetRow, targetCol int) bool{
+func (g *Game) NiFree(sourceRow, sourceCol, targetRow, targetCol int) bool{
 	return g.Ni[sourceRow][sourceCol] == 0 && g.Ni[targetRow][targetCol] == 0
 }
