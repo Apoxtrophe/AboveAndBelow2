@@ -3,14 +3,15 @@ package main
 //ANCHOR Imports
 import (
 	//"image/color"
-	"github.com/hajimehoshi/ebiten/v2"
-	"golang.org/x/image/colornames"
 	"fmt"
 	"image/color"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"golang.org/x/image/colornames"
 )
 
 var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -59,14 +60,14 @@ func (b *Button) Draw(screen *ebiten.Image) {
 
 // ANCHOR Game Struct
 type Game struct {
-	buttons   []*Button
-	Pixels    []byte
-	Ichi      [][]int
-	Ni        [][]int
-	Index     int
-	PixelSize int
-	ParticleCount int
-	FPS float64
+	buttons         []*Button
+	Pixels          []byte
+	Ichi            [][]int
+	Ni              [][]int
+	Index           int
+	PixelSize       int
+	ParticleCount   int
+	FPS             float64
 	SelectedElement string
 }
 
@@ -129,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.WritePixels(g.Pixels)
 	g.DrawUI(screen)
 	//Print debug information
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s",g.FPS, g.ParticleCount,g.SelectedElement))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s", g.FPS, g.ParticleCount, g.SelectedElement))
 
 }
 
@@ -153,7 +154,6 @@ func NewButton(x, y, w, h int, element Element, action func()) *Button {
 // ANCHOR Mouse Work
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
-
 
 	//Clamp to world bounds
 	world_x := clamp(x/g.PixelSize, 0, len(g.Ichi[0])-1)
@@ -200,7 +200,7 @@ func (g *Game) AliveArray() {
 		case 6:
 			g.Phys_Powder(row, col)
 		case 8:
-			g.Phys_Gas(row,col)
+			g.Phys_Gas(row, col)
 		case 14:
 			g.Phys_Powder(row, col)
 		case 22:
@@ -208,7 +208,7 @@ func (g *Game) AliveArray() {
 		case 80:
 			g.Phys_Liquid(row, col)
 		default:
-			
+
 		}
 	}
 	g.Ichi, g.Ni = g.Ni, g.Ichi
@@ -230,11 +230,11 @@ var ElementMap = map[int]Element{
 		Color:   colornames.Gray,
 		Name:    "Carbon",
 		Density: 22,
-		isFluid: false, 
+		isFluid: false,
 	},
 	8: {
-		Color: colornames.Aqua,
-		Name: "Oxygen",
+		Color:   colornames.Aqua,
+		Name:    "Oxygen",
 		Density: 1,
 		isFluid: true,
 	},
@@ -254,9 +254,8 @@ var ElementMap = map[int]Element{
 		Color:   colornames.White,
 		Name:    "Mercury",
 		Density: 135,
-		isFluid: true, 
+		isFluid: true,
 	},
-
 }
 
 // ANCHOR Element Struct
@@ -321,10 +320,10 @@ func (g *Game) Phys_Liquid(row, col int) {
 	}
 }
 
-//ANCHOR GasPhysics
-func (g *Game) Phys_Gas(row, col int){
-	newRow , newCol := g.randomPosition(row, col)
-	if g.canSwapTo(row,col, newRow, newCol){
+// ANCHOR GasPhysics
+func (g *Game) Phys_Gas(row, col int) {
+	newRow, newCol := g.randomPosition(row, col)
+	if g.canSwapTo(row, col, newRow, newCol) {
 		g.swapParticle(row, col, newRow, newCol)
 	} else {
 		g.swapParticle(row, col, row, col)
@@ -332,19 +331,19 @@ func (g *Game) Phys_Gas(row, col int){
 }
 
 // ANCHOR Helper Functions
-func (g *Game) randomPosition(row, col int) (int, int){
+func (g *Game) randomPosition(row, col int) (int, int) {
 	positions := [8][2]int{
 		{-1, -1},
-		{-1, 0 },
-		{-1, 1 },
-		{0 , -1},
-		{0 , 1 },
-		{1 , -1},
-		{1 , 0 },
-		{1 , 1 },
+		{-1, 0},
+		{-1, 1},
+		{0, -1},
+		{0, 1},
+		{1, -1},
+		{1, 0},
+		{1, 1},
 	}
 	randValue := globalRand.Intn(8)
-	return row + positions[randValue][0],  col + positions[randValue][1]
+	return row + positions[randValue][0], col + positions[randValue][1]
 }
 
 func (g *Game) IsFree(row, col int) bool {
@@ -355,7 +354,6 @@ func (g *Game) IsFree(row, col int) bool {
 	return false
 }
 
-
 func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid
 }
@@ -363,25 +361,25 @@ func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
 func (g *Game) swapParticle(sourceRow, sourceCol, targetRow, targetCol int) {
 	Source := g.Ichi[sourceRow][sourceCol]
 	Target := g.Ichi[targetRow][targetCol]
-    g.Ichi[sourceRow][sourceCol] = Target
-    g.Ichi[targetRow][targetCol] = Source
+	g.Ichi[sourceRow][sourceCol] = Target
+	g.Ichi[targetRow][targetCol] = Source
 
-    g.Ni[sourceRow][sourceCol] = g.Ichi[sourceRow][sourceCol]
-    g.Ni[targetRow][targetCol] = g.Ichi[targetRow][targetCol]
+	g.Ni[sourceRow][sourceCol] = g.Ichi[sourceRow][sourceCol]
+	g.Ni[targetRow][targetCol] = g.Ichi[targetRow][targetCol]
 }
 
 func (g *Game) isMoreDense(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return ElementMap[g.Ichi[sourceRow][sourceCol]].Density > ElementMap[g.Ichi[targetRow][targetCol]].Density
 }
 
-func (g *Game) NiFree(sourceRow, sourceCol, targetRow, targetCol int) bool{
+func (g *Game) NiFree(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return g.Ni[sourceRow][sourceCol] == 0 && g.Ni[targetRow][targetCol] == 0
 }
 
 func clamp(value, min, max int) int {
 	if value < min {
 		return min
-  	} else if value > max {
+	} else if value > max {
 		return max
 	}
 	return value
