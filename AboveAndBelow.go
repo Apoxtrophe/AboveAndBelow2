@@ -148,16 +148,13 @@ func NewButton(x, y, w, h int, element Element, action func()) *Button {
 // ANCHOR Mouse Work
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
-	world_x, world_y := x/g.PixelSize, y/g.PixelSize
+
+
+	//Clamp to world bounds
+	world_x := clamp(x/g.PixelSize, 0, len(g.Ichi[0])-1)
+	world_y := clamp(y/g.PixelSize, 0, len(g.Ichi)-1)
 	mouse_one := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	mouse_two := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
-	//Scroll detection
-	_, deltaY := ebiten.Wheel()
-	if deltaY > 0 {
-		g.Index++
-	} else if deltaY < 0 {
-		g.Index--
-	}
 	fmt.Println(g.Index)
 	//Clicking detection
 	if mouse_one {
@@ -372,4 +369,13 @@ func (g *Game) isMoreDense(sourceRow, sourceCol, targetRow, targetCol int) bool 
 
 func (g *Game) NiFree(sourceRow, sourceCol, targetRow, targetCol int) bool{
 	return g.Ni[sourceRow][sourceCol] == 0 && g.Ni[targetRow][targetCol] == 0
+}
+
+func clamp(value, min, max int) int {
+	if value < min {
+		return min
+  	} else if value > max {
+		return max
+	}
+	return value
 }
