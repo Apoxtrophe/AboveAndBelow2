@@ -1,0 +1,1 @@
+1/2 * g.BrushSize)) + row][(world_x - (1/2 * g.BrushSize)) + col] = g.Index

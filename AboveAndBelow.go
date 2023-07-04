@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"time"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
@@ -20,7 +19,7 @@ var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 const (
 	screenWidth  = 1920
 	screenHeight = 1080
-)
+	PixelSize = 5)
 
 // ANCHOR Main
 func main() {
@@ -65,10 +64,10 @@ type Game struct {
 	Ichi            [][]int
 	Ni              [][]int
 	Index           int
-	PixelSize       int
 	ParticleCount   int
 	FPS             float64
 	SelectedElement string
+	BrushSize int
 }
 
 // ANCHOR Game Constructor
@@ -81,13 +80,13 @@ func NewGame() *Game {
 		NewButton(460, 50, 100, 50, ElementMap[22], func() { g.Index = 22 }),
 		NewButton(580, 50, 100, 50, ElementMap[80], func() { g.Index = 80 }),
 	}
-	g.PixelSize = 10
+	g.BrushSize = 1
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
-	g.Ichi = make([][]int, screenHeight/g.PixelSize)
-	g.Ni = make([][]int, screenHeight/g.PixelSize)
+	g.Ichi = make([][]int, screenHeight/PixelSize)
+	g.Ni = make([][]int, screenHeight/PixelSize)
 	for i := range g.Ichi {
-		g.Ichi[i] = make([]int, screenWidth/g.PixelSize)
-		g.Ni[i] = make([]int, screenWidth/g.PixelSize)
+		g.Ichi[i] = make([]int, screenWidth/PixelSize)
+		g.Ni[i] = make([]int, screenWidth/PixelSize)
 	}
 	return g
 }
@@ -116,9 +115,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for row := 0; row < len(g.Ichi); row++ {
 		for col := 0; col < len(g.Ichi[row]); col++ {
 			clr := ElementMap[g.Ichi[row][col]].Color
-			for y := 0; y < g.PixelSize; y++ {
-				for x := 0; x < g.PixelSize; x++ {
-					i := ((row*g.PixelSize+y)*screenWidth + (col*g.PixelSize + x)) * 4
+			for y := 0; y < PixelSize; y++ {
+				for x := 0; x < PixelSize; x++ {
+					i := ((row*PixelSize+y)*screenWidth + (col*PixelSize + x)) * 4
 					g.Pixels[i+0] = clr.R
 					g.Pixels[i+1] = clr.G
 					g.Pixels[i+2] = clr.B
@@ -156,17 +155,43 @@ func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
 
 	//Clamp to world bounds
-	world_x := clamp(x/g.PixelSize, 0, len(g.Ichi[0])-1)
-	world_y := clamp(y/g.PixelSize, 0, len(g.Ichi)-1)
+	world_x := clamp(x/PixelSize, 0, len(g.Ichi[0])-1)
+	world_y := clamp(y/PixelSize, 0, len(g.Ichi)-1)
 	mouse_one := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	mouse_two := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	fmt.Println(g.Index)
+
+	//BrushSizing
+	_,wheelY := ebiten.Wheel()
+	if wheelY > 0 {
+		g.BrushSize ++
+	} else if wheelY < 0 {
+		g.BrushSize --
+	}
+
+	if g.BrushSize < 1 {
+		g.BrushSize = 1
+	}
+	if g.BrushSize > 10{
+		g.BrushSize = 10
+	}
+	brushOffset := g.BrushSize / 2
+
+	
 	//Clicking detection
 	if mouse_one {
-		g.Ichi[world_y][world_x] = g.Index
+		for row := 0; row < g.BrushSize; row++ {
+			for col := 0; col < g.BrushSize; col++ {
+				g.Ichi[(world_y - brushOffset) + row][(world_x - brushOffset) + col] = g.Index
+			}
+		}
 	}
 	if mouse_two {
-		g.Ichi[world_y][world_x] = 0
+		for row := 0; row < g.BrushSize; row++ {
+			for col := 0; col < g.BrushSize; col++ {
+				g.Ichi[world_y + row][world_x + col] = 0
+			}
+		}
 	}
 }
 
@@ -253,7 +278,7 @@ var ElementMap = map[int]Element{
 	80: {
 		Color:   colornames.White,
 		Name:    "Mercury",
-		Density: 135,
+		Density: 13,
 		isFluid: true,
 	},
 }
@@ -346,14 +371,6 @@ func (g *Game) randomPosition(row, col int) (int, int) {
 	return row + positions[randValue][0], col + positions[randValue][1]
 }
 
-func (g *Game) IsFree(row, col int) bool {
-	// Check if free space is available in both buffers
-	if g.Ichi[row][col] == 0 && g.Ni[row][col] == 0 {
-		return true
-	}
-	return false
-}
-
 func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid
 }
@@ -376,6 +393,7 @@ func (g *Game) NiFree(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return g.Ni[sourceRow][sourceCol] == 0 && g.Ni[targetRow][targetCol] == 0
 }
 
+// Used in Mouse selection currently
 func clamp(value, min, max int) int {
 	if value < min {
 		return min
@@ -383,4 +401,12 @@ func clamp(value, min, max int) int {
 		return max
 	}
 	return value
+}
+
+//Used in determining brush size
+func max(x,y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }
