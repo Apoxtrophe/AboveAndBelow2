@@ -23,6 +23,7 @@ const (
 
 // ANCHOR Main
 func main() {
+	ebiten.SetTPS(1000)
 	ebiten.SetWindowTitle("Above & Below")
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowResizable(true)
@@ -131,14 +132,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//Print debug information
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s", g.FPS, g.ParticleCount, g.SelectedElement))
 
+	// Draw brush Size
+	offset := (g.BrushSize / 2 * PixelSize)
+	x, y := ebiten.CursorPosition()
+	x , y = x -offset, y-offset
+    brushSquare := ebiten.NewImage(g.BrushSize*PixelSize, g.BrushSize*PixelSize)
+    brushSquare.Fill(colornames.White) // Replace 'colornames.Red' with any color you want for the brush.
+    op := &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(1, 1, 1, 0.3) // The last parameter is the alpha value, 0.5 makes the image semi-transparent.
+    op.GeoM.Translate(float64(x), float64(y))
+    screen.DrawImage(brushSquare, op)
 }
-
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for _, button := range g.buttons {
 		button.Draw(screen)
 	}
 }
-
 func NewButton(x, y, w, h int, element Element, action func()) *Button {
 	return &Button{
 		x:       x,
@@ -149,7 +158,6 @@ func NewButton(x, y, w, h int, element Element, action func()) *Button {
 		onClick: action,
 	}
 }
-
 // ANCHOR Mouse Work
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
@@ -175,9 +183,7 @@ func MouseInteract(g *Game) {
 	if g.BrushSize > 10{
 		g.BrushSize = 10
 	}
-	brushOffset := g.BrushSize / 2
-
-	
+	brushOffset := g.BrushSize / 2	
 	//Clicking detection
 	if mouse_one {
 		for row := 0; row < g.BrushSize; row++ {
@@ -185,16 +191,15 @@ func MouseInteract(g *Game) {
 				g.Ichi[(world_y - brushOffset) + row][(world_x - brushOffset) + col] = g.Index
 			}
 		}
-	}
+	}		
 	if mouse_two {
 		for row := 0; row < g.BrushSize; row++ {
 			for col := 0; col < g.BrushSize; col++ {
-				g.Ichi[world_y + row][world_x + col] = 0
+				g.Ichi[(world_y - brushOffset) + row][(world_x - brushOffset) + col] = 0
 			}
 		}
 	}
 }
-
 // ANCHOR Alive Array
 func (g *Game) AliveArray() {
 	aliveCells := make([][2]int, 0)
@@ -214,7 +219,6 @@ func (g *Game) AliveArray() {
 			g.Ni[row][col] = 0
 		}
 	}
-
 	for _, pos := range aliveCells {
 		row, col := pos[0], pos[1]
 		if row <= 1 || col <= 1 || row >= len(g.Ichi)-2 || col >= len(g.Ichi[0])-2 {
@@ -242,7 +246,6 @@ func (g *Game) AliveArray() {
 	g.FPS = ebiten.ActualTPS()
 	g.ParticleCount = len(aliveCells)
 }
-
 // ANCHOR Element Map
 var ElementMap = map[int]Element{
 	0: {
@@ -290,14 +293,12 @@ type Element struct {
 	Density int
 	isFluid bool
 }
-
 // ANCHOR SolidPhysics
 func (g *Game) Phys_Solid(row, col int) {
 	if col > 0 {
 		g.Ni[row][col] = g.Ichi[row][col]
 	}
 }
-
 // ANCHOR PowderPhysics
 func (g *Game) Phys_Powder(row, col int) {
 	// Fall down -> fall either side -> fall left -> fall right -> stay stationary
@@ -321,7 +322,6 @@ func (g *Game) Phys_Powder(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
-
 // ANCHOR LiquidPhysics
 func (g *Game) Phys_Liquid(row, col int) {
 	if g.canSwapTo(row, col, row+1, col) {
@@ -344,7 +344,6 @@ func (g *Game) Phys_Liquid(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
-
 // ANCHOR GasPhysics
 func (g *Game) Phys_Gas(row, col int) {
 	newRow, newCol := g.randomPosition(row, col)
@@ -354,7 +353,6 @@ func (g *Game) Phys_Gas(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
-
 // ANCHOR Helper Functions
 func (g *Game) randomPosition(row, col int) (int, int) {
 	positions := [8][2]int{
@@ -370,7 +368,6 @@ func (g *Game) randomPosition(row, col int) (int, int) {
 	randValue := globalRand.Intn(8)
 	return row + positions[randValue][0], col + positions[randValue][1]
 }
-
 func (g *Game) canSwapTo(sourceRow, sourceCol, targetRow, targetCol int) bool {
 	return targetRow < len(g.Ichi) && g.isMoreDense(sourceRow, sourceCol, targetRow, targetCol) && g.NiFree(sourceRow, sourceCol, targetRow, targetCol) && ElementMap[g.Ichi[targetRow][targetCol]].isFluid
 }
