@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 	"math/rand"
 	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
@@ -19,11 +21,13 @@ var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 const (
 	screenWidth  = 1920
 	screenHeight = 1080
-	PixelSize = 5)
+	PixelSize    = 5
+	Tickrate     = 60
+)
 
 // ANCHOR Main
 func main() {
-	ebiten.SetTPS(1000)
+	ebiten.SetTPS(Tickrate)
 	ebiten.SetWindowTitle("Above & Below")
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowResizable(true)
@@ -68,7 +72,7 @@ type Game struct {
 	ParticleCount   int
 	FPS             float64
 	SelectedElement string
-	BrushSize int
+	BrushSize       int
 }
 
 // ANCHOR Game Constructor
@@ -81,7 +85,7 @@ func NewGame() *Game {
 		NewButton(460, 50, 100, 50, ElementMap[22], func() { g.Index = 22 }),
 		NewButton(580, 50, 100, 50, ElementMap[80], func() { g.Index = 80 }),
 	}
-	g.BrushSize = 1
+	g.BrushSize = 2
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
 	g.Ichi = make([][]int, screenHeight/PixelSize)
 	g.Ni = make([][]int, screenHeight/PixelSize)
@@ -133,21 +137,50 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s", g.FPS, g.ParticleCount, g.SelectedElement))
 
 	// Draw brush Size
-	offset := (g.BrushSize / 2 * PixelSize)
-	x, y := ebiten.CursorPosition()
-	x , y = x -offset, y-offset
-    brushSquare := ebiten.NewImage(g.BrushSize*PixelSize, g.BrushSize*PixelSize)
-    brushSquare.Fill(colornames.White) // Replace 'colornames.Red' with any color you want for the brush.
-    op := &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(1, 1, 1, 0.3) // The last parameter is the alpha value, 0.5 makes the image semi-transparent.
-    op.GeoM.Translate(float64(x), float64(y))
-    screen.DrawImage(brushSquare, op)
+	g.DrawBrushGhost(screen)
 }
+
+func (g *Game) DrawBrushGhost(screen *ebiten.Image) {
+    // Calculate the size of the brush
+    radius := float64(g.BrushSize) / 2.0
+
+    // Create a new image with size equal to the diameter of the brush plus an extra pixel.
+    brushImage := ebiten.NewImage(g.BrushSize+1, g.BrushSize+1)
+
+    // Iterate over the pixels of the image and color the pixels that fall inside the brush's circle.
+    for row := -radius; row <= radius; row++ {
+        for col := -radius; col <= radius; col++ {
+            dist := math.Hypot(float64(row), float64(col))
+            if dist <= radius {
+                ix := int(math.Round(radius + col))
+                iy := int(math.Round(radius + row))
+                brushImage.Set(ix, iy, color.RGBA{255, 255, 255, 127})
+            }
+        }
+    }
+
+    // Get the mouse position in the screen coordinates
+    mouseX, mouseY := ebiten.CursorPosition()
+
+    // Calculate the offset based on the radius of the brush.
+    offsetX := radius * float64(PixelSize)
+    offsetY := radius * float64(PixelSize)
+
+    // Draw the brush image at the mouse position, offset by the brush radius.
+    // And scale the image to the screen pixels size.
+    op := &ebiten.DrawImageOptions{}
+    op.GeoM.Scale(float64(PixelSize), float64(PixelSize))
+    op.GeoM.Translate(float64(mouseX)-offsetX, float64(mouseY)-offsetY)
+    op.CompositeMode = ebiten.CompositeModeSourceOver  // Set the composite mode to handle alpha blending correctly
+    screen.DrawImage(brushImage, op)
+}
+
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for _, button := range g.buttons {
 		button.Draw(screen)
 	}
 }
+
 func NewButton(x, y, w, h int, element Element, action func()) *Button {
 	return &Button{
 		x:       x,
@@ -158,48 +191,51 @@ func NewButton(x, y, w, h int, element Element, action func()) *Button {
 		onClick: action,
 	}
 }
+
 // ANCHOR Mouse Work
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
 
-	//Clamp to world bounds
+	// Clamp to world bounds
 	world_x := clamp(x/PixelSize, 0, len(g.Ichi[0])-1)
 	world_y := clamp(y/PixelSize, 0, len(g.Ichi)-1)
 	mouse_one := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	mouse_two := ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
-	fmt.Println(g.Index)
 
-	//BrushSizing
-	_,wheelY := ebiten.Wheel()
+	// Brush Sizing
+	_, wheelY := ebiten.Wheel()
 	if wheelY > 0 {
-		g.BrushSize ++
+		g.BrushSize = g.BrushSize + 2
 	} else if wheelY < 0 {
-		g.BrushSize --
+		g.BrushSize = g.BrushSize - 2
 	}
 
-	if g.BrushSize < 1 {
-		g.BrushSize = 1
+	if g.BrushSize < 2 {
+		g.BrushSize = 2
 	}
-	if g.BrushSize > 10{
+	if g.BrushSize > 10 {
 		g.BrushSize = 10
 	}
-	brushOffset := g.BrushSize / 2	
-	//Clicking detection
-	if mouse_one {
-		for row := 0; row < g.BrushSize; row++ {
-			for col := 0; col < g.BrushSize; col++ {
-				g.Ichi[(world_y - brushOffset) + row][(world_x - brushOffset) + col] = g.Index
-			}
-		}
-	}		
-	if mouse_two {
-		for row := 0; row < g.BrushSize; row++ {
-			for col := 0; col < g.BrushSize; col++ {
-				g.Ichi[(world_y - brushOffset) + row][(world_x - brushOffset) + col] = 0
+	radius := float64(g.BrushSize) / 2.0
+	// Clicking detection
+	if mouse_one || mouse_two {
+		for row := -radius; row <= radius; row++ {
+			for col := -radius; col <= radius; col++ {
+				dist := math.Hypot(float64(row), float64(col))
+				if dist <= radius {
+					ix := clamp(world_x+int(col), 0, len(g.Ichi[0])-1)
+					iy := clamp(world_y+int(row), 0, len(g.Ichi)-1)
+					if mouse_one {
+						g.Ichi[iy][ix] = g.Index
+					} else {
+						g.Ichi[iy][ix] = 0
+					}
+				}
 			}
 		}
 	}
 }
+
 // ANCHOR Alive Array
 func (g *Game) AliveArray() {
 	aliveCells := make([][2]int, 0)
@@ -246,6 +282,7 @@ func (g *Game) AliveArray() {
 	g.FPS = ebiten.ActualTPS()
 	g.ParticleCount = len(aliveCells)
 }
+
 // ANCHOR Element Map
 var ElementMap = map[int]Element{
 	0: {
@@ -293,12 +330,14 @@ type Element struct {
 	Density int
 	isFluid bool
 }
+
 // ANCHOR SolidPhysics
 func (g *Game) Phys_Solid(row, col int) {
 	if col > 0 {
 		g.Ni[row][col] = g.Ichi[row][col]
 	}
 }
+
 // ANCHOR PowderPhysics
 func (g *Game) Phys_Powder(row, col int) {
 	// Fall down -> fall either side -> fall left -> fall right -> stay stationary
@@ -322,6 +361,7 @@ func (g *Game) Phys_Powder(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
+
 // ANCHOR LiquidPhysics
 func (g *Game) Phys_Liquid(row, col int) {
 	if g.canSwapTo(row, col, row+1, col) {
@@ -344,6 +384,7 @@ func (g *Game) Phys_Liquid(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
+
 // ANCHOR GasPhysics
 func (g *Game) Phys_Gas(row, col int) {
 	newRow, newCol := g.randomPosition(row, col)
@@ -353,6 +394,7 @@ func (g *Game) Phys_Gas(row, col int) {
 		g.swapParticle(row, col, row, col)
 	}
 }
+
 // ANCHOR Helper Functions
 func (g *Game) randomPosition(row, col int) (int, int) {
 	positions := [8][2]int{
@@ -400,8 +442,8 @@ func clamp(value, min, max int) int {
 	return value
 }
 
-//Used in determining brush size
-func max(x,y int) int {
+// Used in determining brush size
+func max(x, y int) int {
 	if x > y {
 		return x
 	}
