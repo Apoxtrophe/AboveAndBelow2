@@ -23,6 +23,7 @@ const (
 	screenHeight = 1080
 	PixelSize    = 5
 	Tickrate     = 60
+	BrushAlpha   = 100
 )
 
 // ANCHOR Main
@@ -73,6 +74,7 @@ type Game struct {
 	FPS             float64
 	SelectedElement string
 	BrushSize       int
+	BrushImage      *ebiten.Image
 }
 
 // ANCHOR Game Constructor
@@ -98,6 +100,7 @@ func NewGame() *Game {
 
 // ANCHOR Update
 func (g *Game) Update() error {
+	g.UpdateBrushImage()
 	g.UpdateUI()
 	MouseInteract(g)
 	g.AliveArray()
@@ -140,43 +143,40 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.DrawBrushGhost(screen)
 }
 
-func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
-    // Calculate the size of the brush
+
+func (game *Game) UpdateBrushImage() {
     radius := float64(game.BrushSize) / 2.0
 
-    // Create a new image with size equal to the diameter of the brush plus an extra pixel.
-    brushImage := ebiten.NewImage(game.BrushSize+1, game.BrushSize+1)
+    game.BrushImage = ebiten.NewImage(game.BrushSize+1, game.BrushSize+1)
 
-    // Calculate the pre-multiplied alpha for RGB
-    alpha := 100 
-    factor := float64(alpha) / 255
+    factor := float64(BrushAlpha) / 255
     red, green, blue := uint8(factor*255), uint8(factor*255), uint8(factor*255)
 
-    // Iterate over the pixels of the image and color the pixels that fall inside the brush's circle.
     for row := -radius; row <= radius; row++ {
         for col := -radius; col <= radius; col++ {
             dist := math.Hypot(float64(row), float64(col))
             if dist <= radius {
                 ix := int(math.Round(radius + col))
                 iy := int(math.Round(radius + row))
-                brushImage.Set(ix, iy, color.RGBA{red, green, blue, uint8(alpha)})
+                game.BrushImage.Set(ix, iy, color.RGBA{red, green, blue, uint8(BrushAlpha)})
             }
         }
     }
+}
 
-    // Get the mouse position in the screen coordinates
-    mouseX, mouseY := ebiten.CursorPosition()
 
-    // Calculate the offset based on the radius of the brush.
+
+func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
+    radius := float64(game.BrushSize) / 2.0
     offsetX := radius * float64(PixelSize)
     offsetY := radius * float64(PixelSize)
 
-    // Draw the brush image at the mouse position, offset by the brush radius.
-    // And scale the image to the screen pixels size.
+    mouseX, mouseY := ebiten.CursorPosition()
+
     op := &ebiten.DrawImageOptions{}
     op.GeoM.Scale(float64(PixelSize), float64(PixelSize))
     op.GeoM.Translate(float64(mouseX)-offsetX, float64(mouseY)-offsetY)
-    screen.DrawImage(brushImage, op)
+    screen.DrawImage(game.BrushImage, op)
 }
 
 
@@ -212,16 +212,16 @@ func MouseInteract(g *Game) {
 	// Brush Sizing
 	_, wheelY := ebiten.Wheel()
 	if wheelY > 0 {
-		g.BrushSize = g.BrushSize + 2
+		g.BrushSize = g.BrushSize +1
 	} else if wheelY < 0 {
-		g.BrushSize = g.BrushSize - 2
+		g.BrushSize = g.BrushSize - 1
 	}
 
-	if g.BrushSize < 2 {
-		g.BrushSize = 2
+	if g.BrushSize < 1 {
+		g.BrushSize = 1
 	}
-	if g.BrushSize > 10 {
-		g.BrushSize = 10
+	if g.BrushSize > 100 {
+		g.BrushSize = 100
 	}
 	radius := float64(g.BrushSize) / 2.0
 	// Clicking detection
