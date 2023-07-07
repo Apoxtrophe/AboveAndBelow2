@@ -137,7 +137,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.WritePixels(g.Pixels)
 	g.DrawUI(screen)
 	//Print debug information
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s", g.FPS, g.ParticleCount, g.SelectedElement))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.2f\nNumber of Particles: %d\nElement: %s\nBrush Size: %d", g.FPS, g.ParticleCount, g.SelectedElement, g.BrushSize))
 
 	// Draw brush Size
 	g.DrawBrushGhost(screen)
@@ -172,6 +172,8 @@ func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
     offsetY := radius * float64(PixelSize)
 
     mouseX, mouseY := ebiten.CursorPosition()
+	mouseX = (mouseX / PixelSize) * PixelSize
+	mouseY = (mouseY / PixelSize) * PixelSize
 
     op := &ebiten.DrawImageOptions{}
     op.GeoM.Scale(float64(PixelSize), float64(PixelSize))
