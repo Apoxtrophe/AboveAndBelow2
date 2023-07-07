@@ -40,9 +40,27 @@ func main() {
 // ANCHOR Button Struct
 type Button struct {
 	x, y, w, h int
-	color      color.Color
+	img *ebiten.Image
 	onClick    func()
 }
+
+
+//ANCHOR New Button Function
+func NewButton(x, y, w, h int, imgPath string, action func()) *Button {
+	img,_,err := ebitenutil.NewImageFromFile(imgPath)
+	if err!= nil{
+		log.Fatal()
+	}
+	return &Button{
+		x:       x,
+		y:       y,
+		w:       w,
+		h:       h,
+		img :    img,
+		onClick: action,
+	}
+}
+
 
 // ANCHOR Update Button
 func (b *Button) Update() {
@@ -56,11 +74,9 @@ func (b *Button) Update() {
 
 // ANCHOR Draw Button
 func (b *Button) Draw(screen *ebiten.Image) {
-	button := ebiten.NewImage(b.w, b.h)
-	button.Fill(b.color)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(b.x), float64(b.y))
-	screen.DrawImage(button, op)
+	screen.DrawImage(b.img, op)
 }
 
 // ANCHOR Game Struct
@@ -81,11 +97,11 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
-		NewButton(100, 50, 100, 50, ElementMap[6], func() { g.Index = 6 }),
-		NewButton(220, 50, 100, 50, ElementMap[8], func() { g.Index = 8 }),
-		NewButton(340, 50, 100, 50, ElementMap[14], func() { g.Index = 14 }),
-		NewButton(460, 50, 100, 50, ElementMap[22], func() { g.Index = 22 }),
-		NewButton(580, 50, 100, 50, ElementMap[80], func() { g.Index = 80 }),
+		NewButton(100, 50, 100, 50, "Elements/Carbon.png", func() { g.Index = 6 }),
+		NewButton(220, 50, 100, 50, "Elements/Hydrogen.png", func() { g.Index = 8 }),
+		NewButton(340, 50, 100, 50, "Elements/Oxygen.png", func() { g.Index = 14 }),
+		NewButton(460, 50, 100, 50, "Elements/Silicon.png", func() { g.Index = 22 }),
+		NewButton(580, 50, 100, 50, "Elements/Titanium.png", func() { g.Index = 80 }),
 	}
 	g.BrushSize = 2
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -143,7 +159,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.DrawBrushGhost(screen)
 }
 
-
+// ANCHOR Update Brush Image
 func (game *Game) UpdateBrushImage() {
     radius := float64(game.BrushSize) / 2.0
 
@@ -165,7 +181,7 @@ func (game *Game) UpdateBrushImage() {
 }
 
 
-
+//ANCHOR Draw Brush Ghost
 func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
     radius := float64(game.BrushSize) / 2.0
     offsetX := radius * float64(PixelSize)
@@ -183,21 +199,10 @@ func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
 
 
 
-
+//ANCHOR Draw UI
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for _, button := range g.buttons {
 		button.Draw(screen)
-	}
-}
-
-func NewButton(x, y, w, h int, element Element, action func()) *Button {
-	return &Button{
-		x:       x,
-		y:       y,
-		w:       w,
-		h:       h,
-		color:   element.Color,
-		onClick: action,
 	}
 }
 
