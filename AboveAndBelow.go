@@ -47,20 +47,32 @@ type Button struct {
 
 //ANCHOR New Button Function
 func NewButton(x, y, w, h int, imgPath string, action func()) *Button {
-	img,_,err := ebitenutil.NewImageFromFile(imgPath)
-	if err!= nil{
-		log.Fatal()
-	}
-	return &Button{
-		x:       x,
-		y:       y,
-		w:       w,
-		h:       h,
-		img :    img,
-		onClick: action,
-	}
+    img, err := NewSizedImageFromFile(imgPath, w)
+    if err != nil {
+        log.Fatal(err)
+    }
+    return &Button{
+        x:       x,
+        y:       y,
+        w:       w,
+        h:       h,
+        img:     img,
+        onClick: action,
+    }
 }
 
+//ANCHOR Image Resizer
+func NewSizedImageFromFile(imgPath string, size int) (*ebiten.Image, error){
+	img, _, err := ebitenutil.NewImageFromFile(imgPath)
+	if err != nil{
+		return nil, err
+	}
+	resizedImg := ebiten.NewImage(size, size)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(size)/float64(img.Bounds().Dx()), float64(size)/float64(img.Bounds().Dy()))
+	resizedImg.DrawImage(img,op)
+	return resizedImg, nil
+}
 
 // ANCHOR Update Button
 func (b *Button) Update() {
@@ -98,10 +110,10 @@ func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
 		NewButton(100, 50, 100, 50, "Elements/Carbon.png", func() { g.Index = 6 }),
-		NewButton(220, 50, 100, 50, "Elements/Hydrogen.png", func() { g.Index = 8 }),
-		NewButton(340, 50, 100, 50, "Elements/Oxygen.png", func() { g.Index = 14 }),
-		NewButton(460, 50, 100, 50, "Elements/Silicon.png", func() { g.Index = 22 }),
-		NewButton(580, 50, 100, 50, "Elements/Titanium.png", func() { g.Index = 80 }),
+		NewButton(220, 50, 100, 50, "Elements/Oxygen.png", func() { g.Index = 8 }),
+		NewButton(340, 50, 100, 50, "Elements/Silicon.png", func() { g.Index = 14 }),
+		NewButton(460, 50, 100, 50, "Elements/Titanium.png", func() { g.Index = 22 }),
+		NewButton(580, 50, 100, 50, "Elements/Mercury.png", func() { g.Index = 80 }),
 	}
 	g.BrushSize = 2
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
