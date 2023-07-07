@@ -220,6 +220,8 @@ func (g *Game) DrawUI(screen *ebiten.Image) {
 
 // ANCHOR Mouse Work
 
+
+//TODO - Fix this ugly ass function
 var prevMouseX, prevMouseY int
 
 func MouseInteract(g *Game) {
@@ -248,17 +250,17 @@ func MouseInteract(g *Game) {
 	radius := float64(g.BrushSize) / 2.0
 	// Clicking detection
 	if mouse_one || mouse_two {
-		dx := world_x - prevMouseX
-		dy := world_y - prevMouseY
+		dx := float64(world_x - prevMouseX)
+		dy := float64(world_y - prevMouseY)
 		length := math.Sqrt(float64(dx*dx + dy*dy))
 		if length > 0{
-			dx /= int(length)
-			dy /= int(length)
+			dx /= (length)
+			dy /= (length)
 		}
 
-		for i := 0; i < int(length); i++ {
-			x := prevMouseX + i*dx
-			y := prevMouseY + i*dy
+		for i := 0; i <= int(length); i++ {
+			x := prevMouseX + int(float64(i)*dx)
+			y := prevMouseY + int(float64(i)*dy)
 			for row := -radius; row <= radius; row++ {
 				for col := -radius; col <= radius; col++ {
 					dist := math.Hypot(float64(row), float64(col))
@@ -485,6 +487,8 @@ func clamp(value, min, max int) int {
 	}
 	return value
 }
+
+
 
 // Used in determining brush size
 func max(x, y int) int {
