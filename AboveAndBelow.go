@@ -24,6 +24,7 @@ const (
 	PixelSize    = 5
 	Tickrate     = 60
 	BrushAlpha   = 100
+	ButtonSize   = 100
 )
 
 // ANCHOR Main
@@ -39,23 +40,22 @@ func main() {
 
 // ANCHOR Button Struct
 type Button struct {
-	x, y, w, h int
+	x, y, size int
 	img *ebiten.Image
 	onClick    func()
 }
 
 
 //ANCHOR New Button Function
-func NewButton(x, y, w, h int, imgPath string, action func()) *Button {
-    img, err := NewSizedImageFromFile(imgPath, w)
+func NewButton(x, y, size int, imgPath string, action func()) *Button {
+    img, err := NewSizedImageFromFile(imgPath, size)
     if err != nil {
         log.Fatal(err)
     }
     return &Button{
         x:       x,
         y:       y,
-        w:       w,
-        h:       h,
+		size: size,
         img:     img,
         onClick: action,
     }
@@ -77,7 +77,7 @@ func NewSizedImageFromFile(imgPath string, size int) (*ebiten.Image, error){
 // ANCHOR Update Button
 func (b *Button) Update() {
 	x, y := ebiten.CursorPosition()
-	if x >= b.x && y >= b.y && x < b.x+b.w && y < b.y+b.h {
+	if x >= b.x && y >= b.y && x < b.x+b.size && y < b.y+b.size {
 		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 			b.onClick()
 		}
@@ -109,11 +109,11 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
-		NewButton(100, 50, 100, 50, "Elements/Carbon.png", func() { g.Index = 6 }),
-		NewButton(220, 50, 100, 50, "Elements/Oxygen.png", func() { g.Index = 8 }),
-		NewButton(340, 50, 100, 50, "Elements/Silicon.png", func() { g.Index = 14 }),
-		NewButton(460, 50, 100, 50, "Elements/Titanium.png", func() { g.Index = 22 }),
-		NewButton(580, 50, 100, 50, "Elements/Mercury.png", func() { g.Index = 80 }),
+		NewButton(100, 50, ButtonSize, "Elements/Carbon.png", func() { g.Index = 6 }),
+		NewButton(220, 50, ButtonSize, "Elements/Oxygen.png", func() { g.Index = 8 }),
+		NewButton(340, 50, ButtonSize, "Elements/Silicon.png", func() { g.Index = 14 }),
+		NewButton(460, 50, ButtonSize, "Elements/Titanium.png", func() { g.Index = 22 }),
+		NewButton(580, 50, ButtonSize, "Elements/Mercury.png", func() { g.Index = 80 }),
 	}
 	g.BrushSize = 2
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -219,6 +219,9 @@ func (g *Game) DrawUI(screen *ebiten.Image) {
 }
 
 // ANCHOR Mouse Work
+
+var prevMouseX, prevMouseY int
+
 func MouseInteract(g *Game) {
 	x, y := ebiten.CursorPosition()
 
@@ -231,9 +234,9 @@ func MouseInteract(g *Game) {
 	// Brush Sizing
 	_, wheelY := ebiten.Wheel()
 	if wheelY > 0 {
-		g.BrushSize = g.BrushSize +1
+		g.BrushSize ++
 	} else if wheelY < 0 {
-		g.BrushSize = g.BrushSize - 1
+		g.BrushSize --
 	}
 
 	if g.BrushSize < 1 {
@@ -245,21 +248,36 @@ func MouseInteract(g *Game) {
 	radius := float64(g.BrushSize) / 2.0
 	// Clicking detection
 	if mouse_one || mouse_two {
-		for row := -radius; row <= radius; row++ {
-			for col := -radius; col <= radius; col++ {
-				dist := math.Hypot(float64(row), float64(col))
-				if dist <= radius {
-					ix := clamp(world_x+int(col), 0, len(g.Ichi[0])-1)
-					iy := clamp(world_y+int(row), 0, len(g.Ichi)-1)
-					if mouse_one {
-						g.Ichi[iy][ix] = g.Index
-					} else {
-						g.Ichi[iy][ix] = 0
+		dx := world_x - prevMouseX
+		dy := world_y - prevMouseY
+		length := math.Sqrt(float64(dx*dx + dy*dy))
+		if length > 0{
+			dx /= int(length)
+			dy /= int(length)
+		}
+
+		for i := 0; i < int(length); i++ {
+			x := prevMouseX + i*dx
+			y := prevMouseY + i*dy
+			for row := -radius; row <= radius; row++ {
+				for col := -radius; col <= radius; col++ {
+					dist := math.Hypot(float64(row), float64(col))
+					if dist <= radius {
+						ix := clamp(x+int(col), 0, len(g.Ichi[0])-1)
+						iy := clamp(y+int(row), 0, len(g.Ichi)-1)
+						if mouse_one {
+							g.Ichi[iy][ix] = g.Index
+						} else {
+							g.Ichi[iy][ix] = 0
+						}
 					}
 				}
 			}
 		}
 	}
+
+	prevMouseX = world_x
+	prevMouseY = world_y
 }
 
 // ANCHOR Alive Array
