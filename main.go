@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))

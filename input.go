@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"math/rand"
+	"math"
 )
 
 var prevMouseX, prevMouseY int

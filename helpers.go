@@ -1,17 +1,5 @@
 package main
 
-import "math/rand"
-
-// Used in Mouse selection currently
-func clamp(value, min, max int) int {
-	if value < min {
-		return min
-	} else if value > max {
-		return max
-	}
-	return value
-}
-
 // Used in determining brush size
 func max(x, y int) int {
 	if x > y {

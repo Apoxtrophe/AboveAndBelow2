@@ -7,10 +7,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const (
-	BrushAlpha = 100
-)
-
 func (game *Game) UpdateBrushImage() {
 	radius := float64(game.BrushSize) / 2.0
 

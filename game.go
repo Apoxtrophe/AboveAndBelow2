@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"image/color"
-	"log"
-	"math"
 
+	"math/rand"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"golang.org/x/image/colornames"
 )
 
 type Game struct {
@@ -88,4 +85,52 @@ func (g *Game) DrawUI(screen *ebiten.Image) {
 	for _, button := range g.buttons {
 		button.Draw(screen)
 	}
+}
+
+func (g *Game) AliveArray() {
+	aliveCells := make([][2]int, 0)
+	for row := 0; row < len(g.Ichi); row++ {
+		for col := 0; col < len(g.Ichi[row]); col++ {
+			if g.Ichi[row][col] != 0 {
+				aliveCells = append(aliveCells, [2]int{row, col})
+			}
+		}
+	}
+	rand.Shuffle(len(aliveCells), func(i, j int) {
+		aliveCells[i], aliveCells[j] = aliveCells[j], aliveCells[i]
+	})
+	// Reset next buffer
+	for row := range g.Ichi {
+		for col := range g.Ichi[row] {
+			g.Ni[row][col] = 0
+		}
+	}
+	for _, pos := range aliveCells {
+		row, col := pos[0], pos[1]
+		if row <= 1 || col <= 1 || row >= len(g.Ichi)-2 || col >= len(g.Ichi[0])-2 {
+			g.Ichi[row][col] = 0
+			continue
+		}
+		switch g.Ichi[row][col] {
+		case 1:
+			g.Phys_Gas(row,col)
+		case 6:
+			g.Phys_Powder(row, col)
+		case 8:
+			g.Phys_Gas(row, col)
+		case 14:
+			g.Phys_Powder(row, col)
+		case 22:
+			g.Phys_Solid(row, col)
+		case 80:
+			g.Phys_Liquid(row, col)
+		default:
+
+		}
+	}
+	g.Ichi, g.Ni = g.Ni, g.Ichi
+	//Icky Icky debug stuff
+	g.SelectedElement = ElementMap[g.Index].Name
+	g.FPS = ebiten.ActualTPS()
+	g.ParticleCount = len(aliveCells)
 }
