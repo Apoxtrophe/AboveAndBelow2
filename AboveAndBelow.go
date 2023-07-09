@@ -41,36 +41,35 @@ func main() {
 // ANCHOR Button Struct
 type Button struct {
 	x, y, size int
-	img *ebiten.Image
+	img        *ebiten.Image
 	onClick    func()
 }
 
-
-//ANCHOR New Button Function
+// ANCHOR New Button Function
 func NewButton(x, y, size int, imgPath string, action func()) *Button {
-    img, err := NewSizedImageFromFile(imgPath, size)
-    if err != nil {
-        log.Fatal(err)
-    }
-    return &Button{
-        x:       x,
-        y:       y,
-		size: size,
-        img:     img,
-        onClick: action,
-    }
+	img, err := NewSizedImageFromFile(imgPath, size)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &Button{
+		x:       x,
+		y:       y,
+		size:    size,
+		img:     img,
+		onClick: action,
+	}
 }
 
-//ANCHOR Image Resizer
-func NewSizedImageFromFile(imgPath string, size int) (*ebiten.Image, error){
+// ANCHOR Image Resizer
+func NewSizedImageFromFile(imgPath string, size int) (*ebiten.Image, error) {
 	img, _, err := ebitenutil.NewImageFromFile(imgPath)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	resizedImg := ebiten.NewImage(size, size)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(float64(size)/float64(img.Bounds().Dx()), float64(size)/float64(img.Bounds().Dy()))
-	resizedImg.DrawImage(img,op)
+	resizedImg.DrawImage(img, op)
 	return resizedImg, nil
 }
 
@@ -109,11 +108,13 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{}
 	g.buttons = []*Button{
-		NewButton(100, 50, ButtonSize, "Elements/Carbon.png", func() { g.Index = 6 }),
-		NewButton(220, 50, ButtonSize, "Elements/Oxygen.png", func() { g.Index = 8 }),
-		NewButton(340, 50, ButtonSize, "Elements/Silicon.png", func() { g.Index = 14 }),
-		NewButton(460, 50, ButtonSize, "Elements/Titanium.png", func() { g.Index = 22 }),
-		NewButton(580, 50, ButtonSize, "Elements/Mercury.png", func() { g.Index = 80 }),
+		NewButton(1*ButtonSize*1.2, 50, ButtonSize, "Elements/Hydrogen.png", func() { g.Index = 1 }),
+		NewButton(2*ButtonSize*1.2, 50, ButtonSize, "Elements/Carbon.png", func() { g.Index = 6 }),
+		NewButton(3*ButtonSize*1.2, 50, ButtonSize, "Elements/Oxygen.png", func() { g.Index = 8 }),
+		NewButton(4*ButtonSize*1.2, 50, ButtonSize, "Elements/Silicon.png", func() { g.Index = 14 }),
+		NewButton(5*ButtonSize*1.2, 50, ButtonSize, "Elements/Titanium.png", func() { g.Index = 22 }),
+		NewButton(6*ButtonSize*1.2, 50, ButtonSize, "Elements/Mercury.png", func() { g.Index = 80 }),
+
 	}
 	g.BrushSize = 2
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
@@ -173,45 +174,42 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 // ANCHOR Update Brush Image
 func (game *Game) UpdateBrushImage() {
-    radius := float64(game.BrushSize) / 2.0
+	radius := float64(game.BrushSize) / 2.0
 
-    game.BrushImage = ebiten.NewImage(game.BrushSize+1, game.BrushSize+1)
+	game.BrushImage = ebiten.NewImage(game.BrushSize+1, game.BrushSize+1)
 
-    factor := float64(BrushAlpha) / 255
-    red, green, blue := uint8(factor*255), uint8(factor*255), uint8(factor*255)
+	factor := float64(BrushAlpha) / 255
+	red, green, blue := uint8(factor*255), uint8(factor*255), uint8(factor*255)
 
-    for row := -radius; row <= radius; row++ {
-        for col := -radius; col <= radius; col++ {
-            dist := math.Hypot(float64(row), float64(col))
-            if dist <= radius {
-                ix := int(math.Round(radius + col))
-                iy := int(math.Round(radius + row))
-                game.BrushImage.Set(ix, iy, color.RGBA{red, green, blue, uint8(BrushAlpha)})
-            }
-        }
-    }
+	for row := -radius; row <= radius; row++ {
+		for col := -radius; col <= radius; col++ {
+			dist := math.Hypot(float64(row), float64(col))
+			if dist <= radius {
+				ix := int(math.Round(radius + col))
+				iy := int(math.Round(radius + row))
+				game.BrushImage.Set(ix, iy, color.RGBA{red, green, blue, uint8(BrushAlpha)})
+			}
+		}
+	}
 }
 
-
-//ANCHOR Draw Brush Ghost
+// ANCHOR Draw Brush Ghost
 func (game *Game) DrawBrushGhost(screen *ebiten.Image) {
-    radius := float64(game.BrushSize) / 2.0
-    offsetX := radius * float64(PixelSize)
-    offsetY := radius * float64(PixelSize)
+	radius := float64(game.BrushSize) / 2.0
+	offsetX := radius * float64(PixelSize)
+	offsetY := radius * float64(PixelSize)
 
-    mouseX, mouseY := ebiten.CursorPosition()
+	mouseX, mouseY := ebiten.CursorPosition()
 	mouseX = (mouseX / PixelSize) * PixelSize
 	mouseY = (mouseY / PixelSize) * PixelSize
 
-    op := &ebiten.DrawImageOptions{}
-    op.GeoM.Scale(float64(PixelSize), float64(PixelSize))
-    op.GeoM.Translate(float64(mouseX)-offsetX, float64(mouseY)-offsetY)
-    screen.DrawImage(game.BrushImage, op)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(PixelSize), float64(PixelSize))
+	op.GeoM.Translate(float64(mouseX)-offsetX, float64(mouseY)-offsetY)
+	screen.DrawImage(game.BrushImage, op)
 }
 
-
-
-//ANCHOR Draw UI
+// ANCHOR Draw UI
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for _, button := range g.buttons {
 		button.Draw(screen)
@@ -220,8 +218,7 @@ func (g *Game) DrawUI(screen *ebiten.Image) {
 
 // ANCHOR Mouse Work
 
-
-//TODO - Fix this ugly ass function
+// TODO - Fix this ugly ass function
 var prevMouseX, prevMouseY int
 
 func MouseInteract(g *Game) {
@@ -236,9 +233,9 @@ func MouseInteract(g *Game) {
 	// Brush Sizing
 	_, wheelY := ebiten.Wheel()
 	if wheelY > 0 {
-		g.BrushSize ++
+		g.BrushSize++
 	} else if wheelY < 0 {
-		g.BrushSize --
+		g.BrushSize--
 	}
 
 	if g.BrushSize < 1 {
@@ -253,7 +250,7 @@ func MouseInteract(g *Game) {
 		dx := float64(world_x - prevMouseX)
 		dy := float64(world_y - prevMouseY)
 		length := math.Sqrt(float64(dx*dx + dy*dy))
-		if length > 0{
+		if length > 0 {
 			dx /= (length)
 			dy /= (length)
 		}
@@ -308,6 +305,8 @@ func (g *Game) AliveArray() {
 			continue
 		}
 		switch g.Ichi[row][col] {
+		case 1:
+			g.Phys_Gas(row,col)
 		case 6:
 			g.Phys_Powder(row, col)
 		case 8:
@@ -337,6 +336,12 @@ var ElementMap = map[int]Element{
 		Density: 0,
 		isFluid: true,
 	},
+	1: {
+		Color: colornames.Lightsteelblue,
+		Name: "Hydrogen",
+		Density: 1,
+		isFluid: true,
+	},
 	6: {
 		Color:   colornames.Gray,
 		Name:    "Carbon",
@@ -364,7 +369,7 @@ var ElementMap = map[int]Element{
 	80: {
 		Color:   colornames.White,
 		Name:    "Mercury",
-		Density: 13,
+		Density: 135,
 		isFluid: true,
 	},
 }
@@ -487,8 +492,6 @@ func clamp(value, min, max int) int {
 	}
 	return value
 }
-
-
 
 // Used in determining brush size
 func max(x, y int) int {
