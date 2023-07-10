@@ -31,7 +31,7 @@ func NewGame() *Game {
 		NewButton(5*ButtonSize*1.2, 50, ButtonSize, "Elements/Titanium.png", func() { g.Index = 22 }),
 		NewButton(6*ButtonSize*1.2, 50, ButtonSize, "Elements/Mercury.png", func() { g.Index = 80 }),
 	}
-	g.BrushSize = 2
+	g.BrushSize = 1
 	g.Pixels = make([]byte, screenWidth*screenHeight*4)
 	g.Ichi = make([][]int, screenHeight/PixelSize)
 	g.Ni = make([][]int, screenHeight/PixelSize)
