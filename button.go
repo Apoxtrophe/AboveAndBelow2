@@ -17,7 +17,6 @@ func (b *Button) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(b.x), float64(b.y))
 	screen.DrawImage(b.img, op)
-	ebitenutil.DebugPrintAt(screen, "Button", b.x, b.y)
 }
 
 func (b *Button) Update() {
